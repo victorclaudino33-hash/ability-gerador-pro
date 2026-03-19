@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ability Pro | Admin Control NR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f1a; color: #f1f5f9; scroll-behavior: smooth; }
+        .ability-gradient { background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%); }
+        .glass-card { background: rgba(20, 27, 45, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .control-group { background: rgba(255,255,255,0.03); border: 1px solid rgba(225, 29, 72, 0.15); padding: 15px; border-radius: 15px; }
+        input[type="range"] { -webkit-appearance: none; background: #1e293b; height: 5px; border-radius: 10px; width: 100%; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #e11d48; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(225, 29, 72, 0.5); }
+        .slot-btn { font-size: 8px; padding: 12px 2px; border-radius: 8px; font-weight: 800; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); transition: 0.2s; text-align: center; }
+        .slot-active { background: #e11d48; border-color: #fff; color: white; box-shadow: 0 0 15px rgba(225, 29, 72, 0.3); }
+        .hidden-section { display: none !important; }
+        #previewCanvas { max-width: 100%; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <section id="loginSection" class="min-h-screen flex items-center justify-center p-6 bg-[#0b0f1a]">
+        <div class="max-w-md w-full glass-card p-12 rounded-[3rem] text-center shadow-2xl border-t border-white/10">
+            <div class="w-16 h-16 ability-gradient rounded-2xl flex items-center justify-center text-white text-3xl font-black mx-auto mb-6">A</div>
+            <h2 class="text-2xl font-extrabold text-white mb-8 italic tracking-tighter uppercase">Ability <span class="text-red-600">Secure</span></h2>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-500 ml-2">Usuário</label>
+                    <input type="text" id="userInput" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm outline-none focus:border-red-600 transition-all text-white">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-500 ml-2">Senha</label>
+                    <input type="password" id="passInput" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm outline-none focus:border-red-600 transition-all text-white">
+                </div>
+                <button onclick="validarLogin()" class="w-full ability-gradient text-white font-bold py-4 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs mt-4">Acessar Terminal</button>
+                <p id="loginError" class="hidden text-red-500 text-[10px] font-black uppercase text-center mt-2 animate-pulse">Dados Inválidos</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="mainInterface" class="hidden-section">
+        <header class="bg-[#0b0f1a]/80 backdrop-blur-md border-b border-slate-800 px-8 py-4 flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 ability-gradient rounded flex items-center justify-center font-black text-xs text-white">A</div>
+                <h1 class="font-extrabold text-slate-200 uppercase tracking-tighter">Ability <span class="text-red-500 text-xs">Designer</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="adminBtn" onclick="toggleAdminPanel()" class="hidden-section text-[9px] font-black bg-blue-600 px-3 py-1 rounded-full uppercase tracking-widest text-white hover:bg-blue-500 transition">Controle Equipe</button>
+                <div id="userBadge" class="text-[9px] font-black bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest text-slate-400">---</div>
+                <button onclick="location.reload()" class="text-[9px] font-bold text-red-500 uppercase hover:text-red-400">Sair</button>
+            </div>
+        </header>
+
+        <div id="adminPanel" class="hidden-section max-w-[1600px] mx-auto px-6 mt-6">
+            <div class="glass-card p-6 rounded-[2rem] border-b-2 border-blue-600">
+                <h3 class="text-xs font-black uppercase text-blue-500 mb-4 tracking-widest">Controle de Logins dos Colaboradores</h3>
+                <div id="listaEquipe" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
+
+        <main class="max-w-[1600px] mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-card p-6 rounded-[2rem]">
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Padrão de Lote (Slots)</h4>
+                    <div class="grid grid-cols-5 gap-2">
+                        <button onclick="trocarSlot(1, 'NR10')" id="slot1" class="slot-btn slot-active">NR10</button>
+                        <button onclick="trocarSlot(2, 'NR06')" id="slot2" class="slot-btn">NR06</button>
+                        <button onclick="trocarSlot(3, 'NR35')" id="slot3" class="slot-btn">NR35</button>
+                        <button onclick="trocarSlot(4, 'DEF')" id="slot4" class="slot-btn">DEF</button>
+                        <button onclick="trocarSlot(5, 'NR10 SEP')" id="slot5" class="slot-btn text-[7px]">NR10 SEP</button>
+                    </div>
+                </div>
+
+                <div class="glass-card p-8 rounded-[2.5rem] border-l-4 border-red-600 space-y-6">
+                    <div class="control-group">
+                        <span class="text-[10px] font-black uppercase text-red-500 tracking-wider">Identificação (Nome)</span>
+                        <div class="mt-4 space-y-4">
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Altura Y <span id="val_y_nome" class="text-white font-black text-[10px]">105mm</span></label><input type="range" id="range_y_nome" min="0" max="210" value="105"></div>
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Fonte <span id="val_s_nome" class="text-white font-black text-[10px]">26pt</span></label><input type="range" id="range_s_nome" min="10" max="80" value="26"></div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <span class="text-[10px] font-black uppercase text-red-500 tracking-wider">Documento (CPF)</span>
+                        <div class="mt-4 space-y-4">
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Altura Y <span id="val_y_cpf" class="text-white font-black text-[10px]">125mm</span></label><input type="range" id="range_y_cpf" min="0" max="210" value="125"></div>
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Fonte <span id="val_s_cpf" class="text-white font-black text-[10px]">14pt</span></label><input type="range" id="range_s_cpf" min="8" max="40" value="14"></div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <span class="text-[10px] font-black uppercase text-red-500 tracking-wider">Emissão (Data)</span>
+                        <div class="mt-4 space-y-4">
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Altura Y <span id="val_y_data" class="text-white font-black text-[10px]">145mm</span></label><input type="range" id="range_y_data" min="0" max="210" value="145"></div>
+                            <div><label class="text-[9px] uppercase font-bold text-slate-500 flex justify-between">Fonte <span id="val_s_data" class="text-white font-black text-[10px]">12pt</span></label><input type="range" id="range_s_data" min="8" max="30" value="12"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-6">
+                <div class="glass-card p-4 rounded-3xl flex justify-center gap-8 border-b-2 border-red-600/20 shadow-xl">
+                    <button onclick="document.getElementById('frentePDF').click()" class="text-[10px] font-black text-slate-300 hover:text-red-500 transition">1. FRENTE (PDF)</button>
+                    <button onclick="document.getElementById('versoPDF').click()" class="text-[10px] font-black text-slate-300 hover:text-red-500 transition">2. VERSO (PDF)</button>
+                    <button onclick="document.getElementById('excelInput').click()" class="text-[10px] font-black text-green-500 hover:brightness-110 transition">3. PLANILHA (Excel)</button>
+                    <input type="file" id="frentePDF" class="hidden" accept=".pdf"><input type="file" id="versoPDF" class="hidden" accept=".pdf"><input type="file" id="excelInput" class="hidden" accept=".xlsx">
+                </div>
+                
+                <div class="bg-slate-950 rounded-[3rem] p-6 min-h-[580px] flex flex-col items-center justify-center relative border border-white/5 overflow-hidden shadow-2xl">
+                    <canvas id="previewCanvas" class="hidden"></canvas>
+                    <div id="placeholder" class="text-center opacity-10"><div class="text-7xl font-black italic">PREVIEW MODE</div></div>
+                </div>
+                <button onclick="gerarLoteCompleto()" class="w-full ability-gradient text-white font-black py-6 rounded-[2rem] shadow-2xl hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-widest text-sm">
+                    Processar Motor de Lote Ability NR
+                </button>
+                <div id="status" class="hidden text-center text-xs font-bold text-red-500 animate-pulse uppercase mt-4 italic">Gerando PDFs... Aguarde.</div>
+            </div>
+        </main>
+    </section>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        const { jsPDF } = window.jspdf;
+
+        // --- SISTEMA DE ACESSO ---
+        const loginsEquipe = [
+            { user: "Admin", pass: "999", role: "admin" },
+            { user: "Everton", pass: "123", role: "user" },
+            { user: "Elias", pass: "123", role: "user" },
+            { user: "Breno", pass: "123", role: "user" },
+            { user: "Lucas", pass: "123", role: "user" },
+            { user: "Orlando", pass: "123", role: "user" }
+        ];
+
+        function validarLogin() {
+            const uInput = document.getElementById('userInput').value;
+            const pInput = document.getElementById('passInput').value;
+            const conta = loginsEquipe.find(c => c.user === uInput && c.pass === pInput);
+            if (conta) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainInterface').classList.remove('hidden-section');
+                document.getElementById('userBadge').innerText = `Op: ${conta.user}`;
+                if(conta.role === 'admin') {
+                    document.getElementById('adminBtn').classList.remove('hidden-section');
+                    document.getElementById('listaEquipe').innerHTML = loginsEquipe.map(c => `
+                        <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                            <p class="text-[8px] font-black text-slate-500">${c.role}</p><p class="text-xs font-bold text-white">${c.user}</p><p class="text-[10px] text-red-500 font-mono">Senha: ${c.pass}</p>
+                        </div>`).join('');
+                }
+                carregarConfigSlot(1);
+            } else { document.getElementById('loginError').classList.remove('hidden'); }
+        }
+
+        function toggleAdminPanel() { document.getElementById('adminPanel').classList.toggle('hidden-section'); }
+
+        // --- MOTOR DO GERADOR (CORRIGIDO PARA PREVIEW FIEL) ---
+        let imgFrente = null, imgVerso = null, dadosExcel = [], slotAtivo = 1;
+        const canvasPreview = document.getElementById('previewCanvas');
+        const ctxPreview = canvasPreview.getContext('2d');
+
+        // Escuta Sliders
+        const controls = [
+            {id: 'range_y_nome', val: 'val_y_nome', unit: 'mm'}, {id: 'range_s_nome', val: 'val_s_nome', unit: 'pt'},
+            {id: 'range_y_cpf', val: 'val_y_cpf', unit: 'mm'}, {id: 'range_s_cpf', val: 'val_s_cpf', unit: 'pt'},
+            {id: 'range_y_data', val: 'val_y_data', unit: 'mm'}, {id: 'range_s_data', val: 'val_s_data', unit: 'pt'}
+        ];
+
+        controls.forEach(c => {
+            document.getElementById(c.id).oninput = (e) => {
+                document.getElementById(c.val).innerText = e.target.value + c.unit;
+                updatePreview();
+                salvarConfigSlot();
+            }
+        });
+
+        async function renderizarPDF(file, tipo) {
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 }); // Escala fixa para preview de qualidade
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = viewport.width; tempCanvas.height = viewport.height;
+            await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
+            
+            if(tipo === 'frente') { imgFrente = tempCanvas.toDataURL('image/png'); updatePreview(); }
+            else { imgVerso = tempCanvas.toDataURL('image/png'); alert('Verso Vinculado!'); }
+        }
+
+        function updatePreview() {
+            if (!imgFrente) return;
+            const img = new Image();
+            img.onload = () => {
+                canvasPreview.width = img.width; canvasPreview.height = img.height;
+                canvasPreview.classList.remove('hidden');
+                document.getElementById('placeholder').classList.add('hidden');
+                
+                // Limpa e desenha a imagem de fundo (frente)
+                ctxPreview.clearRect(0, 0, canvasPreview.width, canvasPreview.height);
+                ctxPreview.drawImage(img, 0, 0);
+                
+                // --- LÓGICA DE ESCALA PARA PREVIEW FIEL ---
+                // No jsPDF landscape, a largura é 297mm.
+                // Calculamos a razão pixel/mm do canvas atual.
+                const pxPerMm = canvasPreview.width / 297; 
+                const mmToPx = (mm) => mm * pxPerMm;
+
+                // Configurações Globais de Texto no Canvas
+                ctxPreview.fillStyle = "black";
+                ctxPreview.textAlign = "center";
+                ctxPreview.textBaseline = "middle";
+
+                // Puxa valores dos sliders
+                const v = (id) => parseFloat(document.getElementById(id).value);
+
+                // --- DESENHA NOME EXEMPLO ---
+                const nomeSize = v('range_s_nome');
+                // Ajuste de tamanho da fonte: pt para px no canvas (aproximado, *0.75 para jsPDF simulação)
+                ctxPreview.font = `bold ${mmToPx(nomeSize * 0.3527)}px 'Plus Jakarta Sans'`; 
+                ctxPreview.fillText("NOME DO ALUNO EXEMPLO", canvasPreview.width/2, mmToPx(v('range_y_nome')));
+                
+                // --- DESENHA CPF EXEMPLO ---
+                const cpfSize = v('range_s_cpf');
+                ctxPreview.font = `${mmToPx(cpfSize * 0.3527)}px 'Plus Jakarta Sans'`; 
+                ctxPreview.fillText("CPF: 000.000.000-00", canvasPreview.width/2, mmToPx(v('range_y_cpf')));
+
+                // --- DESENHA DATA EXEMPLO ---
+                const dataSize = v('range_s_data');
+                ctxPreview.font = `${mmToPx(dataSize * 0.3527)}px 'Plus Jakarta Sans'`; 
+                ctxPreview.fillText("Data: 19 de Março de 2026", canvasPreview.width/2, mmToPx(v('range_y_data')));
+            };
+            img.src = imgFrente;
+        }
+
+        // --- HANDLERS DE INPUT ---
+        document.getElementById('frentePDF').onchange = (e) => renderizarPDF(e.target.files[0], 'frente');
+        document.getElementById('versoPDF').onchange = (e) => renderizarPDF(e.target.files[0], 'verso');
+        document.getElementById('excelInput').onchange = (e) => {
+            const leitor = new FileReader();
+            leitor.onload = (ev) => {
+                const wb = XLSX.read(new Uint8Array(ev.target.result), {type: 'array', cellDates: true});
+                dadosExcel = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                alert(dadosExcel.length + " alunos vinculados ao lote!");
+            };
+            leitor.readAsArrayBuffer(e.target.files[0]);
+        };
+
+        // --- GERAÇÃO FINAL DO LOTE (O PREVIEW DEVE SEGUIR ISSO) ---
+        async function gerarLoteCompleto() {
+            if(!imgFrente || !imgVerso || dadosExcel.length === 0) return alert("Erro: Carregue Frente, Verso e Excel.");
+            document.getElementById('status').classList.remove('hidden');
+            
+            setTimeout(() => {
+                const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+                
+                // Configurações dos Sliders em mm e pt
+                const c = {
+                    yn: parseFloat(document.getElementById('range_y_nome').value),
+                    sn: parseFloat(document.getElementById('range_s_nome').value),
+                    yc: parseFloat(document.getElementById('range_y_cpf').value),
+                    sc: parseFloat(document.getElementById('range_s_cpf').value),
+                    yd: parseFloat(document.getElementById('range_y_data').value),
+                    sd: parseFloat(document.getElementById('range_s_data').value)
+                };
+
+                dadosExcel.forEach((p, i) => {
+                    if(i > 0) doc.addPage();
+                    
+                    // --- FRENTE ---
+                    doc.addImage(imgFrente, 'PNG', 0, 0, 297, 210);
+                    doc.setTextColor(0,0,0);
+                    
+                    // NOME
+                    doc.setFontSize(c.sn);
+                    doc.text(`${p.Nome || p.NOME || ""}`, 148.5, c.yn, {align: "center"});
+                    
+                    // CPF
+                    doc.setFontSize(c.sc);
+                    doc.text(`CPF: ${p.CPF || p.cpf || ""}`, 148.5, c.yc, {align: "center"});
+                    
+                    // DATA
+                    doc.setFontSize(c.sd);
+                    const dt = p.Data || p.DATA || "";
+                    const dataFormatada = dt instanceof Date ? dt.toLocaleDateString('pt-BR') : dt;
+                    doc.text(`Data: ${dataFormatada}`, 148.5, c.yd, {align: "center"});
+                    
+                    // --- VERSO ---
+                    doc.addPage();
+                    doc.addImage(imgVerso, 'PNG', 0, 0, 297, 210);
+                });
+
+                doc.save(`Lote_NR_Ability_${Date.now()}.pdf`);
+                document.getElementById('status').classList.add('hidden');
+            }, 500);
+        }
+
+        // --- GESTÃO DE SLOTS (MEMÓRIA LOCAL) ---
+        function trocarSlot(n, nome) {
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('slot-active'));
+            document.getElementById('slot'+n).classList.add('slot-active');
+            slotAtivo = n;
+            carregarConfigSlot(n);
+        }
+
+        function salvarConfigSlot() {
+            const config = {};
+            controls.forEach(c => config[c.id.split('range_')[1]] = document.getElementById(c.id).value);
+            localStorage.setItem('ability_auth_slot_' + slotAtivo, JSON.stringify(config));
+        }
+
+        function carregarConfigSlot(n) {
+            const salvo = localStorage.getItem('ability_auth_slot_' + n);
+            if(salvo) {
+                const c = JSON.parse(salvo);
+                controls.forEach(conf => {
+                    const key = conf.id.split('range_')[1];
+                    if(c[key]) {
+                        const el = document.getElementById(conf.id);
+                        el.value = c[key];
+                        document.getElementById(conf.val).innerText = el.value + conf.unit;
+                    }
+                });
+                updatePreview();
+            }
+        }
+    </script>
+</body>
+</html>
